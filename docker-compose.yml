@@ -1,0 +1,10 @@
+# Example
+
+# docker-compose.yml
+
+services:
+  web:
+    image: your-django-image
+    environment:
+      - HUGGINGFACE_TOKEN=your_hf_token_here
+    # ... rest of your configuration

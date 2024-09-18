@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{#    {% load static %}#}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        .chatbox {
+            width: 50%;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            height: 400px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+        }
+        .input-area {
+            width: 100%;
+            padding: 10px;
+        }
+        #userMessage {
+            width: 80%;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>LLM chatbot</h1>
+    <!-- Model Selection -->
+    <label for="model-select">Choose a model:</label>
+    <select id="model-select">
+        <option value="llama3">Original LlaMA 3</option>
+        <option value="ft-rag">Fine-tuned RAG Model</option>
+    </select>
+    
+    <!-- Chatbot Interface -->
+    <div class="chatbox" id="chatbox"></div>
+    <form onsubmit="sendMessage(event);">
+        {%  csrf_token %}
+        <input type="text" id="userMessage" placeholder="Type your message here" />
+        <button type="button" onclick="sendMessage()">Send</button>
+    </form>
+    
+
+    <script>
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+        
+        async function sendMessage() {
+            // Prevent form submission
+            event.preventDefault();
+            
+            const userMessage = document.getElementById('userMessage').value.trim();
+            if (!userMessage) {
+                return; // Do nothing if the message is empty
+            }
+            
+            const chatbox = document.getElementById('chatbox');
+            const modelChoice = document.getElementById('model-select').value;
+            
+            // Add user's message to the chatbox
+            const newMessage = `<p class="message user-message"><strong>You:</strong> ${userMessage}</p>`;
+            chatbox.innerHTML += newMessage;
+            chatbox.scrollTop = chatbox.scrollHeight;
+            
+            // Clear the input field
+            document.getElementById('userMessage').value = '';
+            
+            try {
+                // Make the POST request to the chatbot API
+                console.log('Sending request to the server...');
+                const url = '{% url "chatbot_response" %}'
+                console.log('Fetch URL:', url);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ message: userMessage, model: modelChoice })
+                });
+                console.log('Request sent. Checking response status...');
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                {#// Check if the model was successfully fetched#}
+                {#const responseHeaders = response.headers.get('model-status');#}
+                {#if (responseHeaders !== 'loaded') {#}
+                {#    throw new Error('Model could not be loaded successfully.');#}
+                
+                {#console.log('Model successfully loaded. Reading response stream...');#}
+                
+                    
+                // Read the response as a stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+    
+                
+                // Create or find the bot's message element
+                let botMessageElement = document.createElement('p');
+                botMessageElement.className = 'message bot-message';
+                botMessageElement.innerHTML = '<strong>Bot:</strong> ';
+                chatbox.appendChild(botMessageElement);
+                chatbox.scrollTop = chatbox.scrollHeight;
+                    
+                // Process the stream
+                while (true) {
+                    console.log('Reading chunk from stream...')
+                    const { done, value } = await reader.read();
+                    if (done) {
+                        console.log('Stream reading completed.');
+                        break;
+                    }
+    
+                    const chunk = decoder.decode(value, { stream: true });
+                    console.log('Received chunk:', chunk);    
+    
+                    // Process the SSE data
+                    const lines = chunk.split('\n');
+                    lines.forEach(line => {
+                        if (line.startsWith('data: ')) {
+                            const word = line.slice(6).trim(); // Remove 'data: '
+                            if (word !== '') {
+                                console.log('Generated word:', word)
+                                botMessageElement.innerHTML += word + ' ';
+                                chatbox.scrollTop = chatbox.scrollHeight;
+                            }
+                        } else {
+                            console.log('Non-data line:', line);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Display error message
+                const errorMessage = `<p class="message bot-message"><strong>Bot:</strong> Something went wrong. Please try again later.</p>`;
+                chatbox.innerHTML += errorMessage;
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
+   
