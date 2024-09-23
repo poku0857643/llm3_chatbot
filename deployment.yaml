@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm3-chatbot-deployment
+  labels:
+    app: llm3-chatbot
+spec:
+  replicas: 3 # Number of replicas
+  selector:
+    matchLabels:
+      app: llm3-chatbot
+  template:
+    metadata:
+      labels:
+        app: llm3-chatbot
+    spec:
+      containers:
+      - name: llm3-chatbot
+        image: eshan75/llm3-chatbot:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATA_BASE_URL
+          value: "sqlite:///db.sqlite3"
+      imagePullSecrets:
+      - name: dockerhub-secret # reference the secret
+

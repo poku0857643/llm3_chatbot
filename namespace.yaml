@@ -1,0 +1,5 @@
+# optiional
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm3-chatbot-ns
