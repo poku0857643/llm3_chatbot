@@ -17,18 +17,20 @@ jobs:
         uses: docker/setup-buildx-action@v3 # use the latest version
 
       - name: Login to DockerHub
-        env:
+        uses: docker/login-action@v3
+        with:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          echo "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
-          if [ $? -ne 0 ]; then
-            echo "Docker login failed. Please check your credentials."
-            exit 1
-          else
-            echo "Docker login succeeded."
-          fi
-          docker info 
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+#          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#        run: |
+#          echo "${DOCKERHUB_TOKEN}" | docker login --username "${DOCKERHUB_USERNAME}" --password-stdin
+#          if [ $? -ne 0 ]; then
+#            echo "Docker login failed. Please check your credentials."
+#            exit 1
+#          else
+#            echo "Docker login succeeded."
+#          fi
+#          docker info
 
       - name: Build and push Docker image
         run: |
