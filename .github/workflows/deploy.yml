@@ -21,7 +21,13 @@ jobs:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo "$DOCKERHUB_TOKEN" | docker login -username "$DOCKERHUB_USERNAME" --password-stdin
+          echo "${DOCKERHUB_TOKEN}" | docker login -username "${DOCKERHUB_USERNAME}" --password-stdin
+          if [ $? -ne 0 ]; then
+            echo "Docker login failed. Please check your credentials."
+            exit 1
+          else
+            echo "Docker login succeeded."
+          fi
           docker info 
 
       - name: Build and push Docker image
